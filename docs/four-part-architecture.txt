@@ -1,0 +1,145 @@
+AURA
+  |-- AURA Bootstrap Layer
+  |-- AURA Runtime Layer
+  |-- AURA Intelligence Engine
+  |-- AURA Adaptation Engine
+  |-- AURA Control Plane 
+
+
+#1. AURA Bootstrap Layer
+      │
+      ├── Environment Discovery
+      │   ├── Application Discovery
+      │   ├── Technology Detection
+      │   ├── Dependency Mapping
+      │   ├── Infrastructure Discovery
+      │   └── Runtime Topology
+      │
+      └── Runtime Enablement
+            ├── AURA Agent Deployment
+            ├── Runtime Instrumentation
+            ├── Configuration Management
+            ├── Access & Permission Setup
+            └── Runtime Readiness
+
+#2. AURA Runtime Layer
+      |
+      |-- Telemetry Agent
+      |      │
+      |      ├── Metrics
+      |      ├── Logs
+      |      ├── Traces
+      |      ├── Events
+      |      ├── Resource Utilization
+      |      ├── Application Behaviour
+      |      ├── Dependency Behaviour
+      |      └── Runtime Changes
+      |
+      |-- Runtime Risk Analyser
+      |      │
+      |      ├── Environment Risk
+      |      ├── Change Risk
+      |      ├── Dependency Risk
+      |      ├── Resource Risk
+      |      ├── Stability Risk
+      |      ├── Security Risk
+      |      ├── Blast-Radius Estimation
+      |      └── Adaptation Readiness
+      |
+      |--Main
+
+=========================================================
+Environment Discovery
+│
+├── Application Discovery
+│   ├── Application_Discovery_Modules
+│           ├── Application Identification
+│           ├── Service Discovery
+│           ├── Process Discovery
+│           ├── Endpoint Discovery
+│           └── Application Metadata
+│
+├── Technology Detection
+│   ├── Language Detection
+│   ├── Framework Detection
+│   ├── Runtime Detection
+│   ├── Library Detection
+│   ├── Database Detection
+│   ├── Messaging Detection
+│   └── Version Detection
+│
+├── Dependency Mapping
+│   ├── Application Dependencies
+│   ├── Service Dependencies
+│   ├── Library Dependencies
+│   ├── Data Dependencies
+│   ├── API Dependencies
+│   ├── Infrastructure Dependencies
+│   └── External Dependencies
+│
+├── Infrastructure Discovery
+│   ├── Compute Discovery
+│   ├── Container Discovery
+│   ├── Orchestrator Discovery
+│   ├── Network Discovery
+│   ├── Storage Discovery
+│   ├── Cloud Resource Discovery
+│   └── Infrastructure Configuration
+│
+├── Runtime Topology
+│   ├── Service Topology
+│   ├── Network Topology
+│   ├── Deployment Topology
+│   ├── Data Flow Mapping
+│   ├── Communication Mapping
+│   └── Runtime Graph
+│
+├── Configuration Discovery
+│   ├── Environment Configuration
+│   ├── Application Configuration
+│   ├── Runtime Configuration
+│   ├── Infrastructure Configuration
+│   └── Configuration Relationships
+│
+├── Interface Discovery
+│   ├── API Discovery
+│   ├── Event Interface Discovery
+│   ├── Database Interface Discovery
+│   ├── Message Interface Discovery
+│   └── External Interface Discovery
+│
+└── Environment Profiling
+    ├── Environment Classification
+    ├── Capability Assessment
+    ├── Compatibility Assessment
+    ├── Constraint Identification
+    └── Environment Profile
+
+
+-------------------------------------------------------------
+
+Environment Discovery
+│
+├── Application Discovery
+│   ├── Application Identification
+│   ├── Service Discovery
+│   ├── Endpoint Discovery
+│   └── Application Metadata
+│
+├── Technology Detection
+│   ├── Language Detection
+│   ├── Framework Detection
+│   ├── Runtime Detection
+│   ├── Library Detection
+│   ├── Database Detection
+│   ├── Messaging Detection
+│   └── Version Detection
+│
+├── Deployment Detection
+│   ├── Docker
+│   ├── Kubernetes
+│   └── Local/VM
+│
+└── Environment Profiling
+    ├── Compatibility Assessment
+    └── Environment Profile
