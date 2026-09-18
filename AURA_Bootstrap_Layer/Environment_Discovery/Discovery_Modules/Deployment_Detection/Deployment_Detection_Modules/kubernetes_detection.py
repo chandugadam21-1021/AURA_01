@@ -28,24 +28,23 @@ class KubernetesDetectionModule:
         "kustomization.yml",
     }
 
+    KUBERNETES_FILES_LOWER = {
+        name.lower()
+        for name in KUBERNETES_FILES
+    }
+
     def __init__(self, files):
         self.files = [Path(file) for file in files]
 
     def Kubernetes_Detector(self):
 
-        detected_files = []
-
-        for file in self.files:
-
-            if file.name.lower() in {
-                name.lower()
-                for name in self.KUBERNETES_FILES
-            }:
-
-                if file.name not in detected_files:
-                    detected_files.append(file.name)
+        detected_files = {
+            file.name
+            for file in self.files
+            if file.name.lower() in self.KUBERNETES_FILES_LOWER
+        }
 
         return {
             "kubernetes": bool(detected_files),
-            "kubernetes_files": detected_files
+            "kubernetes_files": sorted(detected_files),
         }

@@ -16,16 +16,13 @@ class DockerDetectionModule:
 
     def Docker_Detector(self):
 
-        detected_files = []
-
-        for file in self.files:
-
-            if file.name in self.DOCKER_FILES:
-
-                if file.name not in detected_files:
-                    detected_files.append(file.name)
+        detected_files = {
+            file.name
+            for file in self.files
+            if file.name in self.DOCKER_FILES
+        }
 
         return {
             "docker": bool(detected_files),
-            "docker_files": detected_files
+            "docker_files": sorted(detected_files),
         }

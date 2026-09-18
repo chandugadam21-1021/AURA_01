@@ -4,7 +4,6 @@ from pathlib import Path
 class LocalVMDetectionModule:
 
     VM_INDICATORS = {
-        "Vagrantfile",
         "vagrantfile",
         "vmware",
         "virtualbox",
@@ -17,46 +16,38 @@ class LocalVMDetectionModule:
 
     def Local_VM_Detector(self, docker_data=None, kubernetes_data=None):
 
-        # -----------------------------------------
-        # Check Docker
-        # -----------------------------------------
-
         if docker_data and docker_data.get("docker"):
-            return {
-                "local_vm": False,
-                "environment": "Container"
-            }
-
-        # -----------------------------------------
-        # Check Kubernetes
-        # -----------------------------------------
+            return self._environment_result(
+                local_vm=False,
+                environment="Container"
+            )
 
         if kubernetes_data and kubernetes_data.get("kubernetes"):
-            return {
-                "local_vm": False,
-                "environment": "Kubernetes"
-            }
+            return self._environment_result(
+                local_vm=False,
+                environment="Kubernetes"
+            )
 
-        # -----------------------------------------
-        # Check explicit VM indicators
-        # -----------------------------------------
+        if self._has_vm_indicator():
+            return self._environment_result(
+                local_vm=True,
+                environment="Virtual Machine"
+            )
 
-        for file in self.files:
+        return self._environment_result(
+            local_vm=True,
+            environment="Local/Virtual Machine"
+        )
 
-            if file.name.lower() in {
-                indicator.lower()
-                for indicator in self.VM_INDICATORS
-            }:
-                return {
-                    "local/virtual machine": True,
-                    "environment": "Virtual Machine",
-                }
+    def _has_vm_indicator(self):
+        return any(
+            file.name.lower() in self.VM_INDICATORS
+            for file in self.files
+        )
 
-        # -----------------------------------------
-        # No container/orchestrator detected
-        # -----------------------------------------
-
+    @staticmethod
+    def _environment_result(local_vm, environment):
         return {
-            "local/virtual machine": True,
-            "environment": "Local/Virtual Machine"
+            "local_vm": local_vm,
+            "environment": environment,
         }

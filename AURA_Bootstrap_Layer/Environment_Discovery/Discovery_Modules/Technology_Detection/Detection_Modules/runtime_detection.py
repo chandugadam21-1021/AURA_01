@@ -38,46 +38,47 @@ class RuntimeDetectionModule:
         "Cargo.toml": "Rust",
     }
 
+    EXACT_INDICATORS = {
+        name.lower(): runtime
+        for name, runtime in RUNTIME_INDICATORS.items()
+        if not name.startswith("*")
+    }
+
+    EXTENSION_INDICATORS = {
+        name[1:].lower(): runtime
+        for name, runtime in RUNTIME_INDICATORS.items()
+        if name.startswith("*")
+    }
+
     def __init__(self, files):
         self.files = [Path(file) for file in files]
 
     def Runtime_Detector(self):
 
-        detected_runtimes = []
+        detected_runtimes = {
+            runtime
+            for file in self.files
+            if (runtime := self._detect_runtime(file.name))
+        }
 
-        for file in self.files:
-
-            file_name = file.name
-
-            runtime = self._detect_runtime(file_name)
-
-            if runtime and runtime not in detected_runtimes:
-                detected_runtimes.append(runtime)
-
-        if not detected_runtimes:
-            return {
-                "primary_runtime": None,
-                "runtimes": []
-            }
+        runtimes = sorted(detected_runtimes)
 
         return {
-            "primary_runtime": detected_runtimes[0],
-            "runtimes": detected_runtimes
+            "primary_runtime": runtimes[0] if runtimes else None,
+            "runtimes": runtimes,
         }
 
     def _detect_runtime(self, file_name):
 
-        for indicator, runtime in self.RUNTIME_INDICATORS.items():
+        file_name = file_name.lower()
 
-            if indicator.startswith("*"):
+        # Exact filename
+        if file_name in self.EXACT_INDICATORS:
+            return self.EXACT_INDICATORS[file_name]
 
-                extension = indicator[1:]
-
-                if file_name.endswith(extension):
-                    return runtime
-
-            elif file_name.lower() == indicator.lower():
-
+        # Extension-based indicator
+        for extension, runtime in self.EXTENSION_INDICATORS.items():
+            if file_name.endswith(extension):
                 return runtime
 
         return None

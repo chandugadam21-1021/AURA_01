@@ -3,37 +3,39 @@ from pathlib import Path
 
 class FileFilter:
 
+    IGNORED_DIRECTORIES = {
+        "__pycache__",
+        "node_modules",
+        ".git",
+        ".venv",
+        "venv",
+        "target",
+        "build",
+        "dist",
+    }
+
     def __init__(self, files):
-        self.files = files
+        self.files = [Path(file) for file in files]
 
     def filter(self):
 
-        filtered_files = []
+        return [
+            file
+            for file in self.files
+            if self._is_valid(file)
+        ]
 
-        for file in self.files:
+    def _is_valid(self, file):
 
-            file = Path(file)
+        # Ignore hidden files
+        if file.name.startswith("."):
+            return False
 
-            # Ignore hidden files
-            if file.name.startswith("."):
-                continue
+        # Ignore files inside unnecessary directories
+        if any(
+            directory in file.parts
+            for directory in self.IGNORED_DIRECTORIES
+        ):
+            return False
 
-            # Ignore common unnecessary directories
-            if any(
-                directory in file.parts
-                for directory in [
-                    "__pycache__",
-                    "node_modules",
-                    ".git",
-                    ".venv",
-                    "venv",
-                    "target",
-                    "build",
-                    "dist"
-                ]
-            ):
-                continue
-
-            filtered_files.append(file)
-
-        return filtered_files
+        return True

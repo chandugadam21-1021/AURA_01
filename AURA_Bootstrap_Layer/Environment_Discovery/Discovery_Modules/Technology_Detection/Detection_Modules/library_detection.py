@@ -35,7 +35,6 @@ class LibraryDetectionModule:
                     encoding="utf-8",
                     errors="ignore"
                 )
-
             except OSError:
                 continue
 
@@ -45,209 +44,274 @@ class LibraryDetectionModule:
             )
 
             for library in libraries:
-
                 if library not in detected_libraries:
                     detected_libraries.append(library)
 
-        if not detected_libraries:
-            return {
-                "primary_library": None,
-                "libraries": []
-            }
-
         return {
-            "primary_library": detected_libraries[0],
-            "libraries": detected_libraries
+            "primary_library": (
+                detected_libraries[0]
+                if detected_libraries
+                else None
+            ),
+            "libraries": detected_libraries,
         }
 
     def _extract_libraries(self, file_name, content):
 
+        parsers = {
+            "requirements.txt": self._parse_requirements,
+            "pyproject.toml": self._parse_pyproject,
+            "Pipfile": self._parse_pipfile,
+            "package.json": self._parse_package_json,
+            "pom.xml": self._parse_pom,
+            "build.gradle": self._parse_gradle,
+            "build.gradle.kts": self._parse_gradle,
+            "composer.json": self._parse_composer,
+            "Gemfile": self._parse_gemfile,
+            "go.mod": self._parse_go_mod,
+            "Cargo.toml": self._parse_cargo,
+        }
+
+        parser = parsers.get(file_name)
+
+        if not parser:
+            return []
+
+        return parser(content)
+
+    # ------------------------------------------
+    # Python
+    # ------------------------------------------
+
+    def _parse_requirements(self, content):
+
         libraries = []
 
-        # -----------------------------------------
-        # Python - requirements.txt
-        # -----------------------------------------
+        for line in content.splitlines():
 
-        if file_name == "requirements.txt":
+            line = line.strip()
 
-            for line in content.splitlines():
+            if not line or line.startswith("#"):
+                continue
 
-                line = line.strip()
+            match = re.match(
+                r"^([A-Za-z0-9_.-]+)",
+                line
+            )
 
-                if not line:
-                    continue
+            if match:
+                libraries.append(match.group(1))
 
-                if line.startswith("#"):
-                    continue
+        return libraries
+
+    def _parse_pyproject(self, content):
+
+        return re.findall(
+            r'["\']([A-Za-z0-9_.-]+)',
+            content
+        )
+
+    def _parse_pipfile(self, content):
+
+        libraries = []
+        inside_dependencies = False
+
+        for line in content.splitlines():
+
+            line = line.strip()
+
+            if line == "[packages]":
+                inside_dependencies = True
+                continue
+
+            if line.startswith("["):
+                inside_dependencies = False
+
+            if inside_dependencies:
 
                 match = re.match(
-                    r"^([A-Za-z0-9_.-]+)",
+                    r"^([A-Za-z0-9_.-]+)\s*=",
                     line
                 )
 
                 if match:
                     libraries.append(match.group(1))
 
-        # -----------------------------------------
-        # Python - pyproject.toml
-        # -----------------------------------------
+        return libraries
 
-        elif file_name == "pyproject.toml":
+    # ------------------------------------------
+    # Node.js
+    # ------------------------------------------
 
-            dependency_section = False
+    def _parse_package_json(self, content):
 
-            for line in content.splitlines():
+        libraries = []
 
-                line = line.strip()
+        sections = (
+            "dependencies",
+            "devDependencies",
+            "peerDependencies",
+            "optionalDependencies",
+        )
 
-                if "[project]" in line:
-                    dependency_section = True
+        for section in sections:
 
-                if "dependencies" in line:
-                    dependency_section = True
+            pattern = (
+                rf'"{section}"\s*:\s*\{{(.*?)\}}'
+            )
 
-                if dependency_section:
+            match = re.search(
+                pattern,
+                content,
+                re.DOTALL
+            )
 
-                    match = re.search(
-                        r'["\']([A-Za-z0-9_.-]+)',
-                        line
-                    )
+            if not match:
+                continue
 
-                    if match:
-                        libraries.append(match.group(1))
+            libraries.extend(
+                re.findall(
+                    r'"([^"]+)"\s*:',
+                    match.group(1)
+                )
+            )
 
-        # -----------------------------------------
-        # Node.js - package.json
-        # -----------------------------------------
+        return libraries
 
-        elif file_name == "package.json":
+    # ------------------------------------------
+    # Java - Maven
+    # ------------------------------------------
 
-            sections = [
-                "dependencies",
-                "devDependencies"
-            ]
+    def _parse_pom(self, content):
 
-            for section in sections:
+        return re.findall(
+            r"<artifactId>\s*([^<]+)\s*</artifactId>",
+            content
+        )
 
-                pattern = rf'"{section}"\s*:\s*\{{(.*?)\}}'
+    # ------------------------------------------
+    # Java - Gradle
+    # ------------------------------------------
 
-                matches = re.findall(
-                    pattern,
-                    content,
-                    re.DOTALL
+    def _parse_gradle(self, content):
+
+        libraries = []
+
+        pattern = (
+            r"(?:implementation|api|compileOnly|runtimeOnly)"
+            r"\s*[('\"]([^'\"]+)"
+        )
+
+        matches = re.findall(
+            pattern,
+            content
+        )
+
+        for dependency in matches:
+
+            parts = dependency.split(":")
+
+            if len(parts) >= 2:
+                libraries.append(parts[-2])
+            else:
+                libraries.append(parts[0])
+
+        return libraries
+
+    # ------------------------------------------
+    # PHP
+    # ------------------------------------------
+
+    def _parse_composer(self, content):
+
+        return re.findall(
+            r'"([^"]+)"\s*:\s*"[^"]+"',
+            content
+        )
+
+    # ------------------------------------------
+    # Ruby
+    # ------------------------------------------
+
+    def _parse_gemfile(self, content):
+
+        return re.findall(
+            r'gem\s+["\']([^"\']+)',
+            content
+        )
+
+    # ------------------------------------------
+    # Go
+    # ------------------------------------------
+
+    def _parse_go_mod(self, content):
+
+        libraries = []
+
+        inside_require = False
+
+        for line in content.splitlines():
+
+            line = line.strip()
+
+            if line.startswith("require ("):
+                inside_require = True
+                continue
+
+            if inside_require and line == ")":
+                inside_require = False
+                continue
+
+            if inside_require:
+
+                match = re.match(
+                    r"^([A-Za-z0-9_.\-/]+)",
+                    line
                 )
 
-                for match in matches:
+                if match:
+                    libraries.append(match.group(1))
 
-                    dependencies = re.findall(
-                        r'"([^"]+)"\s*:',
-                        match
-                    )
+            elif line.startswith("require "):
 
-                    libraries.extend(dependencies)
+                match = re.match(
+                    r"^require\s+([A-Za-z0-9_.\-/]+)",
+                    line
+                )
 
-        # -----------------------------------------
-        # Java - pom.xml
-        # -----------------------------------------
+                if match:
+                    libraries.append(match.group(1))
 
-        elif file_name == "pom.xml":
+        return libraries
 
-            matches = re.findall(
-                r"<artifactId>(.*?)</artifactId>",
-                content
-            )
+    # ------------------------------------------
+    # Rust
+    # ------------------------------------------
 
-            libraries.extend(matches)
+    def _parse_cargo(self, content):
 
-        # -----------------------------------------
-        # Java - Gradle
-        # -----------------------------------------
+        libraries = []
+        inside_dependencies = False
 
-        elif file_name in {
-            "build.gradle",
-            "build.gradle.kts"
-        }:
+        for line in content.splitlines():
 
-            matches = re.findall(
-                r"(?:implementation|api|compileOnly|runtimeOnly)"
-                r"\s*[('\"]([^'\"]+)",
-                content
-            )
+            line = line.strip()
 
-            for dependency in matches:
+            if line == "[dependencies]":
+                inside_dependencies = True
+                continue
 
-                parts = dependency.split(":")
+            if line.startswith("["):
+                inside_dependencies = False
 
-                if parts:
-                    libraries.append(parts[-2] if len(parts) >= 2 else parts[0])
+            if inside_dependencies:
 
-        # -----------------------------------------
-        # PHP - composer.json
-        # -----------------------------------------
+                match = re.match(
+                    r"^([A-Za-z0-9_-]+)\s*=",
+                    line
+                )
 
-        elif file_name == "composer.json":
-
-            matches = re.findall(
-                r'"([^"]+)"\s*:\s*"[^"]+"',
-                content
-            )
-
-            libraries.extend(matches)
-
-        # -----------------------------------------
-        # Ruby - Gemfile
-        # -----------------------------------------
-
-        elif file_name == "Gemfile":
-
-            matches = re.findall(
-                r'gem\s+["\']([^"\']+)',
-                content
-            )
-
-            libraries.extend(matches)
-
-        # -----------------------------------------
-        # Go - go.mod
-        # -----------------------------------------
-
-        elif file_name == "go.mod":
-
-            matches = re.findall(
-                r"^\s*(?:require\s+)?([A-Za-z0-9_.\-/]+)",
-                content,
-                re.MULTILINE
-            )
-
-            libraries.extend(matches)
-
-        # -----------------------------------------
-        # Rust - Cargo.toml
-        # -----------------------------------------
-
-        elif file_name == "Cargo.toml":
-
-            dependency_section = False
-
-            for line in content.splitlines():
-
-                line = line.strip()
-
-                if line == "[dependencies]":
-                    dependency_section = True
-                    continue
-
-                if line.startswith("[") and line != "[dependencies]":
-                    dependency_section = False
-
-                if dependency_section:
-
-                    match = re.match(
-                        r"^([A-Za-z0-9_-]+)\s*=",
-                        line
-                    )
-
-                    if match:
-                        libraries.append(match.group(1))
+                if match:
+                    libraries.append(match.group(1))
 
         return libraries

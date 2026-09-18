@@ -33,49 +33,53 @@ class FrameworkDetectionModule:
         "microsoft.aspnetcore": "ASP.NET Core",
     }
 
+    FRAMEWORK_FILES = {
+        "requirements.txt",
+        "pyproject.toml",
+        "package.json",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+    }
+
+    FRAMEWORK_DEPENDENCIES_LOWER = {
+        dependency.lower(): framework
+        for dependency, framework in FRAMEWORK_DEPENDENCIES.items()
+    }
+
+    FRAMEWORK_FILES_LOWER = {
+        file.lower()
+        for file in FRAMEWORK_FILES
+    }
+
     def __init__(self, files):
         self.files = [Path(file) for file in files]
 
     def Framework_Detector(self):
 
-        detected_frameworks = []
+        detected_frameworks = set()
 
         for file in self.files:
 
-            file_name = file.name.lower()
+            if file.name.lower() not in self.FRAMEWORK_FILES_LOWER:
+                continue
 
-            if file_name in {
-                "requirements.txt",
-                "pyproject.toml",
-                "package.json",
-                "pom.xml",
-                "build.gradle"
-            }:
+            try:
+                content = file.read_text(
+                    encoding="utf-8",
+                    errors="ignore"
+                ).lower()
+            except OSError:
+                continue
 
-                try:
-                    content = file.read_text(
-                        encoding="utf-8",
-                        errors="ignore"
-                    ).lower()
+            for dependency, framework in self.FRAMEWORK_DEPENDENCIES_LOWER.items():
 
-                except OSError:
-                    continue
+                if dependency in content:
+                    detected_frameworks.add(framework)
 
-                for dependency, framework in self.FRAMEWORK_DEPENDENCIES.items():
-
-                    if dependency in content:
-
-                        if framework not in detected_frameworks:
-                            detected_frameworks.append(framework)
-
-        if not detected_frameworks:
-
-            return {
-                "primary_framework": None,
-                "frameworks": []
-            }
+        frameworks = sorted(detected_frameworks)
 
         return {
-            "primary_framework": detected_frameworks[0],
-            "frameworks": detected_frameworks
+            "primary_framework": frameworks[0] if frameworks else None,
+            "frameworks": frameworks,
         }

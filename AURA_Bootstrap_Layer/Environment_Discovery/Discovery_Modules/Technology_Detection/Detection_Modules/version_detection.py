@@ -17,6 +17,41 @@ class VersionDetectionModule:
         ".nvmrc",
     }
 
+    VERSION_PATTERNS = {
+        "python": (
+            r'python_requires\s*=\s*["\']([^"\']+)',
+            r'python\s*=\s*["\']([^"\']+)',
+            r'python_version\s*=\s*["\']([^"\']+)',
+            r'python:([0-9.]+)',
+        ),
+
+        "node.js": (
+            r'"node"\s*:\s*"([^"]+)"',
+            r'node:([0-9.]+)',
+        ),
+
+        "fastapi": (
+            r'fastapi\s*==\s*([0-9.]+)',
+            r'fastapi\s*>=\s*([0-9.]+)',
+            r'fastapi\s*<=\s*([0-9.]+)',
+            r'"fastapi"\s*:\s*"([^"]+)"',
+        ),
+
+        "django": (
+            r'django\s*==\s*([0-9.]+)',
+            r'django\s*>=\s*([0-9.]+)',
+            r'django\s*<=\s*([0-9.]+)',
+            r'"django"\s*:\s*"([^"]+)"',
+        ),
+
+        "flask": (
+            r'flask\s*==\s*([0-9.]+)',
+            r'flask\s*>=\s*([0-9.]+)',
+            r'flask\s*<=\s*([0-9.]+)',
+            r'"flask"\s*:\s*"([^"]+)"',
+        ),
+    }
+
     def __init__(self, files, technology_data):
         self.files = [Path(file) for file in files]
         self.technology_data = technology_data
@@ -25,11 +60,14 @@ class VersionDetectionModule:
 
         versions = {}
 
-        detected_technologies = self._get_technologies()
+        technologies = self._get_technologies()
 
         for file in self.files:
 
-            if file.name not in self.VERSION_FILES:
+            if file.name.lower() not in {
+                name.lower()
+                for name in self.VERSION_FILES
+            }:
                 continue
 
             try:
@@ -37,11 +75,10 @@ class VersionDetectionModule:
                     encoding="utf-8",
                     errors="ignore"
                 )
-
             except OSError:
                 continue
 
-            for technology in detected_technologies:
+            for technology in technologies:
 
                 version = self._find_version(
                     technology,
@@ -60,179 +97,112 @@ class VersionDetectionModule:
 
         technologies = []
 
-        # Language
-        language_data = self.technology_data.get(
+        categories = (
             "language",
-            {}
-        )
-
-        primary_language = language_data.get(
-            "primary_language"
-        )
-
-        if primary_language:
-            technologies.append(primary_language)
-
-        # Framework
-        framework_data = self.technology_data.get(
             "framework",
-            {}
-        )
-
-        primary_framework = framework_data.get(
-            "primary_framework"
-        )
-
-        if primary_framework:
-            technologies.append(primary_framework)
-
-        # Runtime
-        runtime_data = self.technology_data.get(
             "runtime",
-            {}
-        )
-
-        primary_runtime = runtime_data.get(
-            "primary_runtime"
-        )
-
-        if primary_runtime:
-            technologies.append(primary_runtime)
-
-        # Database
-        database_data = self.technology_data.get(
             "database",
-            {}
+            "messaging",
         )
 
-        primary_database = database_data.get(
-            "primary_database"
-        )
+        for category in categories:
 
-        if primary_database:
-            technologies.append(primary_database)
+            data = self.technology_data.get(
+                category,
+                {}
+            )
+
+            technology = data.get(
+                self._primary_key(category)
+            )
+
+            if technology:
+                technologies.append(technology)
 
         return technologies
 
-    def _find_version(self, technology, content, file_name):
+    def _primary_key(self, category):
+
+        if category == "language":
+            return "primary_language"
+
+        if category == "framework":
+            return "primary_framework"
+
+        if category == "runtime":
+            return "primary_runtime"
+
+        if category == "database":
+            return "primary_database"
+
+        if category == "messaging":
+            return "primary_messaging"
+
+        return None
+
+    def _find_version(
+        self,
+        technology,
+        content,
+        file_name
+    ):
 
         technology_lower = technology.lower()
 
-        # -----------------------------------------
-        # Python
-        # -----------------------------------------
+        # Python version file
+        if (
+            technology_lower == "python"
+            and file_name.lower() == ".python-version"
+        ):
+            return self._file_version(content)
 
-        if technology_lower == "python":
+        # Node.js version file
+        if (
+            technology_lower == "node.js"
+            and file_name.lower() == ".nvmrc"
+        ):
+            return self._file_version(content)
 
-            if file_name == ".python-version":
+        patterns = self.VERSION_PATTERNS.get(
+            technology_lower
+        )
 
-                version = content.strip()
-
-                if version:
-                    return version
-
-            patterns = [
-                r'python_requires\s*=\s*["\']([^"\']+)',
-                r'python\s*=\s*["\']([^"\']+)',
-                r'python_version\s*=\s*["\']([^"\']+)',
-                r'python:([0-9.]+)',
-            ]
-
-            return self._search_patterns(
+        if patterns:
+            version = self._search_patterns(
                 patterns,
                 content
             )
 
-        # -----------------------------------------
-        # Node.js
-        # -----------------------------------------
+            if version:
+                return version
 
-        if technology_lower == "node.js":
+        return self._find_generic_version(
+            technology,
+            content
+        )
 
-            if file_name == ".nvmrc":
+    def _file_version(self, content):
 
-                version = content.strip()
+        version = content.strip()
 
-                if version:
-                    return version
+        return version if version else None
 
-            patterns = [
-                r'"node"\s*:\s*"([^"]+)"',
-                r'node:([0-9.]+)',
-            ]
+    def _find_generic_version(
+        self,
+        technology,
+        content
+    ):
 
-            return self._search_patterns(
-                patterns,
-                content
-            )
+        escaped_name = re.escape(
+            technology
+        )
 
-        # -----------------------------------------
-        # FastAPI
-        # -----------------------------------------
-
-        if technology_lower == "fastapi":
-
-            patterns = [
-                r'fastapi\s*==\s*([0-9.]+)',
-                r'fastapi\s*>=\s*([0-9.]+)',
-                r'fastapi\s*<=\s*([0-9.]+)',
-                r'"fastapi"\s*:\s*"([^"]+)"',
-            ]
-
-            return self._search_patterns(
-                patterns,
-                content,
-                ignore_case=True
-            )
-
-        # -----------------------------------------
-        # Django
-        # -----------------------------------------
-
-        if technology_lower == "django":
-
-            patterns = [
-                r'django\s*==\s*([0-9.]+)',
-                r'django\s*>=\s*([0-9.]+)',
-                r'django\s*<=\s*([0-9.]+)',
-                r'"django"\s*:\s*"([^"]+)"',
-            ]
-
-            return self._search_patterns(
-                patterns,
-                content,
-                ignore_case=True
-            )
-
-        # -----------------------------------------
-        # Flask
-        # -----------------------------------------
-
-        if technology_lower == "flask":
-
-            patterns = [
-                r'flask\s*==\s*([0-9.]+)',
-                r'flask\s*>=\s*([0-9.]+)',
-                r'"flask"\s*:\s*"([^"]+)"',
-            ]
-
-            return self._search_patterns(
-                patterns,
-                content,
-                ignore_case=True
-            )
-
-        # -----------------------------------------
-        # Generic dependency version
-        # -----------------------------------------
-
-        escaped_name = re.escape(technology)
-
-        patterns = [
+        patterns = (
             rf'{escaped_name}\s*==\s*([0-9.]+)',
             rf'{escaped_name}\s*>=\s*([0-9.]+)',
+            rf'{escaped_name}\s*<=\s*([0-9.]+)',
             rf'"{escaped_name}"\s*:\s*"([^"]+)"',
-        ]
+        )
 
         return self._search_patterns(
             patterns,
@@ -240,11 +210,11 @@ class VersionDetectionModule:
             ignore_case=True
         )
 
+    @staticmethod
     def _search_patterns(
-        self,
         patterns,
         content,
-        ignore_case=False
+        ignore_case=True
     ):
 
         flags = re.IGNORECASE if ignore_case else 0

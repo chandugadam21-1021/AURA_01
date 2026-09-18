@@ -14,6 +14,19 @@ class ApplicationIdentifier:
         "Application.java",
     }
 
+    WEB_INDICATORS = {
+        "package.json",
+        "requirements.txt",
+        "pyproject.toml",
+        "pom.xml",
+        "build.gradle",
+    }
+
+    CLI_INDICATORS = {
+        "cli.py",
+        "main.py",
+    }
+
     def __init__(self, files):
         self.files = [Path(file) for file in files]
 
@@ -48,25 +61,10 @@ class ApplicationIdentifier:
             for file in self.files
         }
 
-        # Web application indicators
-        web_files = {
-            "package.json",
-            "requirements.txt",
-            "pyproject.toml",
-            "pom.xml",
-            "build.gradle",
-        }
-
-        if file_names.intersection(web_files):
+        if file_names & self.WEB_INDICATORS:
             return "Web Application"
 
-        # CLI indicators
-        cli_files = {
-            "cli.py",
-            "main.py",
-        }
-
-        if file_names.intersection(cli_files):
+        if file_names & self.CLI_INDICATORS:
             return "CLI Application"
 
         return "Unknown"

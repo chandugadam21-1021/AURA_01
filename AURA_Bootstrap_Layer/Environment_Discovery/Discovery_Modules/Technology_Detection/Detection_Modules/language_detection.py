@@ -31,30 +31,18 @@ class LanguageDetectionModule:
 
     def Language_Detector(self):
 
-        language_count = Counter()
+        language_count = Counter(
+            self.LANGUAGE_EXTENSIONS[file.suffix.lower()]
+            for file in self.files
+            if file.suffix.lower() in self.LANGUAGE_EXTENSIONS
+        )
 
-        for file in self.files:
-
-            language = self.LANGUAGE_EXTENSIONS.get(
-                file.suffix.lower()
-            )
-
-            if language:
-                language_count[language] += 1
-
-        if not language_count:
-            return {
-                "primary_language": None,
-                "languages": []
-            }
-
-        languages = []
-
-        for language, count in language_count.most_common():
-
-            languages.append(language)
+        languages = [
+            language
+            for language, _ in language_count.most_common()
+        ]
 
         return {
-            "primary_language": languages[0],
-            "languages": languages
+            "primary_language": languages[0] if languages else None,
+            "languages": languages,
         }

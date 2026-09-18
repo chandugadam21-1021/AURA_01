@@ -58,16 +58,27 @@ class MessagingDetectionModule:
         "Cargo.toml",
     }
 
+    MESSAGING_DEPENDENCIES_LOWER = {
+        dependency.lower(): messaging_system
+        for dependency, messaging_system
+        in MESSAGING_DEPENDENCIES.items()
+    }
+
+    MESSAGING_FILES_LOWER = {
+        file.lower()
+        for file in MESSAGING_FILES
+    }
+
     def __init__(self, files):
         self.files = [Path(file) for file in files]
 
     def Messaging_Detector(self):
 
-        detected_messaging_systems = []
+        detected_systems = set()
 
         for file in self.files:
 
-            if file.name not in self.MESSAGING_FILES:
+            if file.name.lower() not in self.MESSAGING_FILES_LOWER:
                 continue
 
             try:
@@ -75,29 +86,22 @@ class MessagingDetectionModule:
                     encoding="utf-8",
                     errors="ignore"
                 ).lower()
-
             except OSError:
                 continue
 
             for dependency, messaging_system in (
-                self.MESSAGING_DEPENDENCIES.items()
+                self.MESSAGING_DEPENDENCIES_LOWER.items()
             ):
+                if dependency in content:
+                    detected_systems.add(messaging_system)
 
-                if dependency.lower() in content:
-
-                    if messaging_system not in detected_messaging_systems:
-                        detected_messaging_systems.append(
-                            messaging_system
-                        )
-
-        if not detected_messaging_systems:
-
-            return {
-                "primary_messaging": None,
-                "messaging_systems": []
-            }
+        messaging_systems = sorted(detected_systems)
 
         return {
-            "primary_messaging": detected_messaging_systems[0],
-            "messaging_systems": detected_messaging_systems
+            "primary_messaging": (
+                messaging_systems[0]
+                if messaging_systems
+                else None
+            ),
+            "messaging_systems": messaging_systems,
         }

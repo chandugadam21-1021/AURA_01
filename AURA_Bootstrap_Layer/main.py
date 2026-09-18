@@ -1,7 +1,7 @@
 from Environment_Discovery.main import DiscoveryModules
 
 
-TARGET_APPLICATION_PATH = "../target-apps/node-app"
+TARGET_APPLICATION_PATH = "../target-apps/python-app"
 
 # ***Environment Discovery***
 
@@ -31,12 +31,9 @@ environment_profile = (
 
 
 env_discovery_data = {
-    "APPLICATION DISCOVERY DATA" : application_discovery_data,
-    "margin_1" : "_"*60,
-    "TECHNOLOGY DETECTION DATA" : technology_detection_data,
-    "margin_2" : "_"*60,
-    "DEPLOYMENT DETECTION DATA" : deployment_detection_data,
-    "margin_3" : "_"*60,
+    #"APPLICATION DISCOVERY DATA" : application_discovery_data,
+    #"TECHNOLOGY DETECTION DATA" : technology_detection_data,
+    #"DEPLOYMENT DETECTION DATA" : deployment_detection_data,
     "ENVIRONMENT PROFILE" : environment_profile,
 }
 
